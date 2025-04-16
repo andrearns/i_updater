@@ -7,6 +7,7 @@ class IUpdaterConstants {
   static final RegExp googlePlayVersionPattern =
       RegExp(r',\[\[\["([0-9,\.]*)"]],');
 
+  // Apple iTunes lookup API URL - using the standard format
   static const String iOSDetailsPath =
       'https://itunes.apple.com/:language/lookup?bundleId=:id';
 

@@ -76,25 +76,64 @@ class VersionManager extends InterfaceVersion with _VersionManagerMixin {
   @override
   Future<AppInfo?> getIOSInfo() async {
     final String? appId = await UpdaterManager.getAppId();
+    
+    // Ensure we have a valid app ID
+    if (appId == null || appId.isEmpty) {
+      print('IUpdater: iOS app ID is null or empty');
+      return null;
+    }
+    
     try {
-      final Map<String, dynamic>? response = await fetch(
-        IUpdaterConstants.iOSDetailsPath
-            .replaceAll(
-              IUpdaterConstants.language,
-              countryCode,
-            )
-            .replaceAll(
-              IUpdaterConstants.id,
-              appId!,
-            ),
-      );
+      final String lookupUrl = IUpdaterConstants.iOSDetailsPath
+          .replaceAll(
+            IUpdaterConstants.language,
+            countryCode,
+          )
+          .replaceAll(
+            IUpdaterConstants.id,
+            appId,
+          );
+      
+      print('IUpdater: iOS lookup URL: $lookupUrl');
+      
+      final Map<String, dynamic>? response = await fetch(lookupUrl);
+      
+      // Debug information
+      if (response == null) {
+        print('IUpdater: iOS store response is null');
+        return null;
+      }
+      
+      print('IUpdater: iOS response keys: ${response.keys.toList()}');
+      
+      if (!response.containsKey(IUpdaterConstants.results) || 
+          response[IUpdaterConstants.results] == null ||
+          response[IUpdaterConstants.results].isEmpty) {
+        print('IUpdater: iOS results not found or empty');
+        return null;
+      }
+      
+      final results = response[IUpdaterConstants.results];
+      print('IUpdater: iOS results count: ${results.length}');
+      
+      if (results.isEmpty) {
+        print('IUpdater: No results found for this app ID: $appId');
+        return null;
+      }
+      
+      final firstResult = results.first;
+      final version = firstResult[IUpdaterConstants.version];
+      final trackViewUrl = firstResult[IUpdaterConstants.trackViewUrl];
+      
+      print('IUpdater: iOS version found: $version');
+      print('IUpdater: iOS store URL found: $trackViewUrl');
+      
       return AppInfo(
-        version: response?[IUpdaterConstants.results]
-            .first[IUpdaterConstants.version],
-        storeUrl: response?[IUpdaterConstants.results]
-            .first[IUpdaterConstants.trackViewUrl],
+        version: version,
+        storeUrl: trackViewUrl,
       );
-    } catch (_) {
+    } catch (e) {
+      print('IUpdater: Error getting iOS app info: $e');
       return null;
     }
   }
@@ -110,11 +149,34 @@ mixin _VersionManagerMixin {
     String url,
   ) async {
     try {
-      final http.Response response = await http.get(Uri.parse(url));
-      return response.statusCode == HttpStatus.ok
-          ? jsonDecode(response.body)
-          : null;
-    } catch (_) {
+      final http.Response response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        print('IUpdater: Request timed out for URL: $url');
+        throw Exception('Request timed out');
+      });
+      
+      print('IUpdater: Response status code: ${response.statusCode}');
+      
+      if (response.statusCode == HttpStatus.ok) {
+        try {
+          final jsonBody = jsonDecode(response.body);
+          return jsonBody;
+        } catch (e) {
+          print('IUpdater: JSON decode error: $e');
+          print('IUpdater: Response body: ${response.body.substring(0, math.min(100, response.body.length))}...');
+          return null;
+        }
+      } else {
+        print('IUpdater: HTTP error: ${response.statusCode}, Body: ${response.body.substring(0, math.min(100, response.body.length))}...');
+        return null;
+      }
+    } catch (e) {
+      print('IUpdater: Network request error: $e');
       return null;
     }
   }
