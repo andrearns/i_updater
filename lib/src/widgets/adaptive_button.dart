@@ -16,13 +16,29 @@ class AdaptiveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Platform.isAndroid
-        ? TextButton(
-            onPressed: onPressed,
-            child: Text(text),
-          )
-        : CupertinoDialogAction(
-            onPressed: onPressed,
-            child: Text(text),
-          );
+      ? ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF14B099),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(50),
+            ),
+          ),
+          onPressed: onPressed,
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        )
+      : CupertinoDialogAction(
+          onPressed: onPressed,
+          child: Text(text),
+        );
   }
 }
