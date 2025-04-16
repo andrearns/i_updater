@@ -86,6 +86,7 @@ class AppUpdateDialog extends StatelessWidget {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const SizedBox(height: 10),
             content ??
                 Text(
                   language.content,
